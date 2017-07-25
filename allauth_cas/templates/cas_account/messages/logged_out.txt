@@ -1,0 +1,4 @@
+{% load i18n %}
+{% blocktrans %}
+To logout of CAS, please close your browser, or visit this {{ logout_link }}.
+{% endblocktrans %}

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 from setuptools import find_packages, setup
@@ -15,7 +16,7 @@ setup(
     description='CAS support for django-allauth.',
     author='Aurélien Delobelle',
     author_email='aurelien.delobelle@gmail.com',
-    keyword='django allauth cas authentication',
+    keywords='django allauth cas authentication',
     long_description=README,
     url='https://github.com/aureplop/django-allauth-cas',
     classifiers=[
@@ -44,6 +45,7 @@ setup(
     install_requires=[
         'django-allauth',
         'python-cas',
+        'six',
     ],
     extras_require={
         'tests': ['tox'],
