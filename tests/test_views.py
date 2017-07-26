@@ -8,10 +8,10 @@ import django
 from django.test import RequestFactory, TestCase, override_settings
 
 from allauth_cas.exceptions import CASAuthenticationError
+from allauth_cas.test.testcases import CASViewTestCase
 from allauth_cas.views import CASView
 
 from .example.views import ExampleCASAdapter
-from .testcases import CASViewTestCase
 
 if django.VERSION >= (1, 10):
     from django.urls import reverse
@@ -179,7 +179,7 @@ class CASCallbackViewTests(CASViewTestCase):
         """
         If ticket is valid, the user is logged in.
         """
-        self.patch_cas_client('verify')
+        self.patch_cas_response(username='username', valid_ticket='123456')
         r = self.client.get('/accounts/theid/login/callback/', {
             'ticket': '123456',
         })
@@ -189,7 +189,7 @@ class CASCallbackViewTests(CASViewTestCase):
         """
         Login failure page is returned if the ticket is invalid.
         """
-        self.patch_cas_client('verify')
+        self.patch_cas_response(username='username', valid_ticket='123456')
         r = self.client.get('/accounts/theid/login/callback/', {
             'ticket': '000000',
         })
@@ -199,7 +199,7 @@ class CASCallbackViewTests(CASViewTestCase):
         """
         Login failure page is returned if request lacks a ticket.
         """
-        self.patch_cas_client('verify')
+        self.patch_cas_response(username='username', valid_ticket='123456')
         r = self.client.get('/accounts/theid/login/callback/')
         self.assertLoginFailure(r)
 
