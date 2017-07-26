@@ -29,8 +29,9 @@ def client_cas_login(client):
 
 class LogoutFlowTests(TestCase):
     expected_msg_str = (
-        "To logout of CAS, please close your browser, or visit this <a "
-        "href=\"/accounts/theid/logout/?next=%2F\">link</a>."
+        "To logout of CAS, please close your browser, or visit this "
+        "<a href=\"/accounts/theid/logout/?next=%2Faccounts%2Flogout%2F\">"
+        "link</a>."
     )
 
     def setUp(self):
