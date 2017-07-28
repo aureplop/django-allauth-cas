@@ -1,0 +1,30 @@
+language: python
+python: "3.6"
+
+env:
+  matrix:
+    - TOXENV=py27-django18
+    - TOXENV=py34-django18
+    - TOXENV=py35-django18
+    - TOXENV=py27-django19
+    - TOXENV=py34-django19
+    - TOXENV=py35-django19
+    - TOXENV=py27-django110
+    - TOXENV=py34-django110
+    - TOXENV=py35-django110
+    - TOXENV=py27-django111
+    - TOXENV=py34-django111
+    - TOXENV=py35-django111
+    - TOXENV=py36-django111
+    - TOXENV=flake8
+    - TOXENV=isort
+
+install:
+    - pip install coverage coveralls tox
+
+script:
+    - tox
+
+after_success:
+    - coverage combine
+    - coveralls
