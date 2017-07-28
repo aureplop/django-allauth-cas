@@ -28,11 +28,21 @@ class AuthAction(object):
 
 
 class CASAdapter(object):
-    # CAS client parameters
-    renew = False
 
     def __init__(self, request):
         self.request = request
+
+    @property
+    def renew(self):
+        """
+        If user is already authenticated on Django, he may already been
+        connected to CAS, but still may want to use another CAS account.
+        We set renew to True in this case, as the CAS server won't use the
+        single sign-on.
+        To specifically check, if the current user has used a CAS server,
+        we check if the CAS session key is set.
+        """
+        return CAS_PROVIDER_SESSION_KEY in self.request.session
 
     def get_provider(self):
         """

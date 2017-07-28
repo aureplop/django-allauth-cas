@@ -5,10 +5,10 @@ except ImportError:
     from mock import patch
 
 import django
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, override_settings
 
 from allauth_cas.exceptions import CASAuthenticationError
-from allauth_cas.test.testcases import CASViewTestCase
+from allauth_cas.test.testcases import CASTestCase, CASViewTestCase
 from allauth_cas.views import CASView
 
 from .example.views import ExampleCASAdapter
@@ -19,11 +19,12 @@ else:
     from django.core.urlresolvers import reverse
 
 
-class CASAdapterTests(TestCase):
+class CASAdapterTests(CASTestCase):
 
     def setUp(self):
         factory = RequestFactory()
         self.request = factory.get('/path/')
+        self.request.session = {}
         self.adapter = ExampleCASAdapter(self.request)
 
     def test_get_service_url(self):
@@ -61,6 +62,23 @@ class CASAdapterTests(TestCase):
         })
         self.assertEqual(expected, callback_url)
 
+    def test_renew(self):
+        """
+        From an anonymous request, renew is False to let using the single
+        sign-on.
+        """
+        self.assertFalse(self.adapter.renew)
+
+    def test_renew_authenticated(self):
+        """
+        If user has been authenticated to the application through CAS, and
+        tries to reauthenticate, renew is set to True to opt-out the single
+        sign-on.
+        """
+        r = self.client_cas_login(self.client)
+        adapter = ExampleCASAdapter(r.wsgi_request)
+        self.assertTrue(adapter.renew)
+
 
 class CASViewTests(CASViewTestCase):
 
@@ -70,7 +88,8 @@ class CASViewTests(CASViewTestCase):
 
     def setUp(self):
         factory = RequestFactory()
-        self.request = factory.get('path')
+        self.request = factory.get('/path/')
+        self.request.session = {}
 
         self.cas_view = self.BasicCASView.adapter_view(ExampleCASAdapter)
 

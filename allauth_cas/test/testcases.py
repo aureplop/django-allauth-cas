@@ -4,6 +4,7 @@ try:
 except ImportError:
     from mock import patch
 
+import django
 from django.conf import settings
 from django.test import TestCase
 
@@ -11,8 +12,34 @@ import cas
 
 from allauth_cas import CAS_PROVIDER_SESSION_KEY
 
+if django.VERSION >= (1, 10):
+    from django.urls import reverse
+else:
+    from django.core.urlresolvers import reverse
+
 
 class CASTestCase(TestCase):
+
+    def client_cas_login(
+            self,
+            client, provider_id='theid',
+            username=None, attributes={}):
+        """
+        Authenticate client through provider_id.
+
+        Returns the response of the callback view.
+
+        username and attributes control the CAS server response when ticket is
+        checked.
+        """
+        self.patch_cas_response(
+            valid_ticket='__all__',
+            username=username, attributes=attributes,
+        )
+        callback_url = reverse('{id}_callback'.format(id=provider_id))
+        r = client.get(callback_url, {'ticket': 'fake-ticket'})
+        self.patch_cas_response_stop()
+        return r
 
     def patch_cas_response(
             self,
@@ -41,20 +68,39 @@ class CASTestCase(TestCase):
         ticket retrieved from GET parameter on request on the callback view).
         """
         if hasattr(self, '_patch_cas_client'):
-            self.patch_cas_client_stop()
+            self.patch_cas_response_stop()
 
-        class MockCASClient(cas.CASClientV2):
+        class MockCASClient(object):
             _username = username
 
-            def __init__(self_client, *args, **kwargs):
-                kwargs.pop('version')
-                super(MockCASClient, self_client).__init__(*args, **kwargs)
+            def __new__(self_client, *args, **kwargs):
+                version = kwargs.pop('version')
+                if version in (1, '1'):
+                    client_class = cas.CASClientV1
+                elif version in (2, '2'):
+                    client_class = cas.CASClientV2
+                elif version in (3, '3'):
+                    client_class = cas.CASClientV3
+                elif version == 'CAS_2_SAML_1_0':
+                    client_class = cas.CASClientWithSAMLV1
+                else:
+                    raise ValueError('Unsupported CAS_VERSION %r' % version)
 
-            def verify_ticket(self_client, ticket):
-                if valid_ticket == '__all__' or ticket == valid_ticket:
-                    username = self_client._username or 'username'
-                    return username, attributes, None
-                return None, {}, None
+                client_class._username = self_client._username
+
+                def verify_ticket(self, ticket):
+                    if valid_ticket == '__all__' or ticket == valid_ticket:
+                        username = self._username or 'username'
+                        return username, attributes, None
+                    return None, {}, None
+
+                patcher = patch.object(
+                    client_class, 'verify_ticket',
+                    new=verify_ticket,
+                )
+                patcher.start()
+
+                return client_class(*args, **kwargs)
 
         self._patch_cas_client = patch(
             'allauth_cas.views.cas.CASClient',
@@ -62,13 +108,13 @@ class CASTestCase(TestCase):
         )
         self._patch_cas_client.start()
 
-    def patch_cas_client_stop(self):
+    def patch_cas_response_stop(self):
         self._patch_cas_client.stop()
         del self._patch_cas_client
 
     def tearDown(self):
         if hasattr(self, '_patch_cas_client'):
-            self.patch_cas_client_stop()
+            self.patch_cas_response_stop()
 
 
 class CASViewTestCase(CASTestCase):

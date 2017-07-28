@@ -1,33 +1,16 @@
 # -*- coding: utf-8 -*-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.messages.api import get_messages
 from django.contrib.messages.storage.base import Message
-from django.test import TestCase, override_settings
+from django.test import override_settings
 
-from .cas_clients import AcceptCASClient
+from allauth_cas.test.testcases import CASTestCase
 
 User = get_user_model()
 
 
-@patch('allauth_cas.views.cas.CASClient', AcceptCASClient)
-def client_cas_login(client):
-    """
-    Sign in client through the example CAS provider.
-    Returns the response of callbacK view.
-    """
-    r = client.get('/accounts/theid/login/callback/', {
-        'ticket': 'fake-ticket',
-    })
-    return r
-
-
-class LogoutFlowTests(TestCase):
+class LogoutFlowTests(CASTestCase):
     expected_msg_str = (
         "To logout of CAS, please close your browser, or visit this "
         "<a href=\"/accounts/theid/logout/?next=%2Faccounts%2Flogout%2F\">"
@@ -35,7 +18,7 @@ class LogoutFlowTests(TestCase):
     )
 
     def setUp(self):
-        client_cas_login(self.client)
+        self.client_cas_login(self.client)
 
     def assertCASLogoutNotInMessages(self, response):
         r_messages = get_messages(response.wsgi_request)
