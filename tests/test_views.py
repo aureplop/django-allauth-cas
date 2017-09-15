@@ -105,7 +105,7 @@ class CASViewTests(CASViewTestCase):
 
         self.assertIsInstance(view, CASView)
 
-        self.assertEqual(view.request, view.request)
+        self.assertEqual(view.request, self.request)
         self.assertTupleEqual(view.args, ('arg1', 'arg2'))
         self.assertDictEqual(view.kwargs, {
             'kwarg1': 'kwarg1',
@@ -187,6 +187,9 @@ class CASLoginViewTests(CASViewTestCase):
 
 class CASCallbackViewTests(CASViewTestCase):
 
+    def setUp(self):
+        self.client.get('/accounts/theid/login/')
+
     def test_reverse(self):
         """
         Callback view name is "{provider_id}_callback".
@@ -195,7 +198,7 @@ class CASCallbackViewTests(CASViewTestCase):
         self.assertEqual('/accounts/theid/login/callback/', url)
 
     def test_ticket_valid(self):
-        """
+        """p(
         If ticket is valid, the user is logged in.
         """
         self.patch_cas_response(username='username', valid_ticket='123456')

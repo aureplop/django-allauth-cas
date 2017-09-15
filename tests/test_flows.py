@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.messages.api import get_messages
 from django.contrib.messages.storage.base import Message
-from django.test import override_settings
+from django.test import Client, override_settings
 
 from allauth_cas.test.testcases import CASTestCase
 
@@ -69,7 +69,8 @@ class LogoutFlowTests(CASTestCase):
         The CAS logout message doesn't appear with other login methods.
         """
         User.objects.create_user('user', '', 'user')
-        self.client.login(username='user', password='user')
+        client = Client()
+        client.login(username='user', password='user')
 
-        r = self.client.post('/accounts/logout/')
+        r = client.post('/accounts/logout/')
         self.assertCASLogoutNotInMessages(r)

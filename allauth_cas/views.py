@@ -9,6 +9,7 @@ from allauth.socialaccount import providers
 from allauth.socialaccount.helpers import (
     complete_social_login, render_authentication_error,
 )
+from allauth.socialaccount.models import SocialLogin
 
 import cas
 
@@ -133,6 +134,7 @@ class CASView(object):
 
             # Setup and store adapter as view attribute.
             self.adapter = adapter(request)
+            self.provider = self.adapter.get_provider()
 
             try:
                 return self.dispatch(request, *args, **kwargs)
@@ -145,8 +147,7 @@ class CASView(object):
         """
         Returns the CAS client to interact with the CAS server.
         """
-        provider = self.adapter.get_provider()
-        auth_params = provider.get_auth_params(request, action)
+        auth_params = self.provider.get_auth_params(request, action)
 
         service_url = self.adapter.get_service_url(request)
 
@@ -164,10 +165,7 @@ class CASView(object):
         """
         Returns an HTTP response in case an authentication failure happens.
         """
-        return render_authentication_error(
-            self.request,
-            self.adapter.provider_id,
-        )
+        return render_authentication_error(self.request, self.provider.id)
 
 
 class CASLoginView(CASView):
@@ -177,6 +175,7 @@ class CASLoginView(CASView):
         Redirects to the CAS server login page.
         """
         action = request.GET.get('action', AuthAction.AUTHENTICATE)
+        SocialLogin.stash_state(request)
         client = self.get_client(request, action=action)
         return HttpResponseRedirect(client.get_login_url())
 
@@ -192,7 +191,6 @@ class CASCallbackView(CASView):
         here. If ticket is valid, CAS server may also return extra attributes
         about user.
         """
-        provider = self.adapter.get_provider()
         client = self.get_client(request)
 
         # CAS server should let a ticket.
@@ -216,10 +214,11 @@ class CASCallbackView(CASView):
 
         # The CAS provider in use is stored to propose to the user to
         # disconnect from the latter when he logouts.
-        request.session[CAS_PROVIDER_SESSION_KEY] = provider.id
+        request.session[CAS_PROVIDER_SESSION_KEY] = self.provider.id
 
         # Finish the login flow
         login = self.adapter.complete_login(request, response)
+        login.state = SocialLogin.unstash_state(request)
         return complete_social_login(request, login)
 
 

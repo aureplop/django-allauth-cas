@@ -9,6 +9,9 @@ from .example.views import ExampleCASAdapter
 
 class CASTestCaseTests(CASViewTestCase):
 
+    def setUp(self):
+        self.client.get('/accounts/theid/login/')
+
     def test_patch_cas_response_client_version(self):
         """
         python-cas uses multiple client classes depending on the CAS server
@@ -86,6 +89,7 @@ class CASTestCaseTests(CASViewTestCase):
     def test_patch_cas_reponse_multiple(self):
         self.patch_cas_response(valid_ticket='__all__')
         client_0 = Client()
+        client_0.get('/accounts/theid/login/')
         r_0 = client_0.get('/accounts/theid/login/callback/', {
             'ticket': '000000',
         })
@@ -93,6 +97,7 @@ class CASTestCaseTests(CASViewTestCase):
 
         self.patch_cas_response(valid_ticket=None)
         client_1 = Client()
+        client_1.get('/accounts/theid/login/')
         r_1 = client_1.get('/accounts/theid/login/callback/', {
             'ticket': '111111',
         })
