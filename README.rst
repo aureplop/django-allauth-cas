@@ -9,6 +9,8 @@ django-allauth-cas
     :target: https://coveralls.io/github/aureplop/django-allauth-cas?branch=master
 
 
+**Warning:** Still under development.
+
 CAS support for django-allauth_.
 
 Supports:
