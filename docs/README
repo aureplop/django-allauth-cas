@@ -1,0 +1,14 @@
+#############
+Documentation
+#############
+
+
+The documentation is compiled from reStructuredText using `Sphinx`_.
+
+To compile your own html version in ``_build/html/``::
+
+  # First time only.
+  pip install sphinx
+
+  # Build html.
+  make html

@@ -12,8 +12,8 @@ User = get_user_model()
 
 class LogoutFlowTests(CASTestCase):
     expected_msg_str = (
-        "To logout of CAS, please close your browser, or visit this "
-        "<a href=\"/accounts/theid/logout/?next=%2Faccounts%2Flogout%2F\">"
+        "To logout of The Provider, please close your browser, or visit this "
+        "<a href=\"/accounts/theid/logout/?next=%2Fredir%2F\">"
         "link</a>."
     )
 
@@ -28,43 +28,36 @@ class LogoutFlowTests(CASTestCase):
         )
         self.assertTemplateNotUsed(
             response,
-            'cas_account/messages/logged_out.txt',
+            'socialaccount/messages/suggest_caslogout.html',
         )
 
     @override_settings(SOCIALACCOUNT_PROVIDERS={
         'theid': {
-            'MESSAGE_ON_LOGOUT': True,
-            'MESSAGE_ON_LOGOUT_LEVEL': messages.WARNING,
+            'MESSAGE_SUGGEST_CASLOGOUT_ON_LOGOUT': True,
+            'MESSAGE_SUGGEST_CASLOGOUT_ON_LOGOUT_LEVEL': messages.WARNING,
         },
     })
     def test_message_on_logout(self):
         """
         Message is sent to propose user to logout of CAS.
         """
-        r = self.client.post('/accounts/logout/')
+        r = self.client.post('/accounts/logout/?next=/redir/')
         r_messages = get_messages(r.wsgi_request)
 
         expected_msg = Message(messages.WARNING, self.expected_msg_str)
 
         self.assertIn(expected_msg, r_messages)
-        self.assertTemplateUsed(r, 'cas_account/messages/logged_out.txt')
+        self.assertTemplateUsed(
+            r, 'socialaccount/messages/suggest_caslogout.html')
 
-    @override_settings(SOCIALACCOUNT_PROVIDERS={
-        'theid': {
-            'MESSAGE_ON_LOGOUT': False,
-        },
-    })
     def test_message_on_logout_disabled(self):
-        """
-        The logout message can be disabled in settings.
-        """
         r = self.client.post('/accounts/logout/')
         self.assertCASLogoutNotInMessages(r)
 
     @override_settings(SOCIALACCOUNT_PROVIDERS={
-        'theid': {'MESSAGE_ON_LOGOUT': True},
+        'theid': {'MESSAGE_SUGGEST_CASLOGOUT_ON_LOGOUT': True},
     })
-    def test_default_logout(self):
+    def test_other_logout(self):
         """
         The CAS logout message doesn't appear with other login methods.
         """

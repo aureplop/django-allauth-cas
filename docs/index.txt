@@ -1,0 +1,16 @@
+.. django-allauth-cas documentation master file.
+
+.. include:: ../README.rst
+
+
+********
+Contents
+********
+
+.. toctree::
+    :maxdepth: 2
+
+    basic_setup
+    advanced/index
+
+    changelog

@@ -1,0 +1,40 @@
+########################
+Configure the CAS client
+########################
+
+.. seealso::
+
+  `CAS Protocol Specification`_
+
+The CAS client parameters can be set on the ``CASAdapter`` subclasses.
+
+
+******************
+Server information
+******************
+
+You must at least fill these attributes on an adapter class.
+
+.. autoattribute:: allauth_cas.views.CASAdapter.url
+
+.. autoattribute:: allauth_cas.views.CASAdapter.version
+
+
+*****************
+Client parameters
+*****************
+
+.. autoattribute:: allauth_cas.views.CASAdapter.renew
+
+.. note::
+
+  A SSO session is created when user successfully authenticates against the
+  server, which let an HTTP cookie in the browser current session. If SSO is
+  enabled (``renew = False``), server checks this cookie, if any, to bypass the
+  request of user credentials. Depending on the server configuration and user
+  input at login time, CAS server replies to login page requests with a warning
+  page, or transparently redirects to the callback url (path to come back to
+  your web service).
+
+
+.. _`CAS Protocol Specification`: https://apereo.github.io/cas/5.0.x/protocol/CAS-Protocol-Specification.html

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import django
 from django.http import HttpResponseRedirect
-from django.utils.http import urlencode
+from django.utils.functional import cached_property
 
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import get_next_redirect_url
@@ -16,11 +15,6 @@ import cas
 from . import CAS_PROVIDER_SESSION_KEY
 from .exceptions import CASAuthenticationError
 
-if django.VERSION >= (1, 10):
-    from django.urls import reverse
-else:
-    from django.core.urlresolvers import reverse
-
 
 class AuthAction(object):
     AUTHENTICATE = 'authenticate'
@@ -29,23 +23,38 @@ class AuthAction(object):
 
 
 class CASAdapter(object):
+    #: CAS server url.
+    url = None
+    #: CAS server version.
+    #: Choices: ``1`` or ``'1'``, ``2`` or ``'2'``, ``3`` or ``'3'``,
+    #: ``'CAS_2_SAML_1_0'``
+    version = None
 
     def __init__(self, request):
         self.request = request
 
-    @property
+    @cached_property
     def renew(self):
-        """
-        If user is already authenticated on Django, he may already been
-        connected to CAS, but still may want to use another CAS account.
-        We set renew to True in this case, as the CAS server won't use the
-        single sign-on.
-        To specifically check, if the current user has used a CAS server,
-        we check if the CAS session key is set.
+        """Controls presence of ``renew`` in requests to the CAS server.
+
+        If ``True``, opt out single sign-on (SSO) functionality of the CAS
+        server. So that, user is always prompted for his username and password.
+
+        If ``False``, the CAS server does not prompt users for their
+        credentials if a SSO exists.
+
+        The default allows user to connect via an already used CAS server
+        with other credentials.
+
+        Returns:
+            ``True`` if logged in user has already connected to Django using
+            **any** CAS provider in the current session, ``False`` otherwise.
+
         """
         return CAS_PROVIDER_SESSION_KEY in self.request.session
 
-    def get_provider(self):
+    @cached_property
+    def provider(self):
         """
         Returns a provider instance for the current request.
         """
@@ -53,75 +62,66 @@ class CASAdapter(object):
 
     def complete_login(self, request, response):
         """
-        Executed by the callback view after successful authentication on CAS
-        server.
+        Executed by the callback view after successful authentication on the
+        CAS server.
 
-        Returns the SocialLogin object which represents the state of the
-        current login-session.
+        Args:
+            request
+            response (`dict`): Data returned by the CAS server.
+                ``response[username]`` contains the user identifier for the
+                server, and may contain extra user-attributes.
+
+        Returns:
+            `SocialLogin()` object: State of the login-session.
+
         """
-        login = (self.get_provider()
-                 .sociallogin_from_response(request, response))
+        login = self.provider.sociallogin_from_response(request, response)
         return login
 
     def get_service_url(self, request):
-        """
-        Returns the service url to for a CAS client.
+        """The service url, used by the CAS client.
 
-        From CAS specification, the service url is used in order to redirect
-        user after a successful login on CAS server. Also, service_url sent
-        when ticket is verified must be the one for which ticket was issued.
+        According to the CAS spec, the service url is passed by the CAS client
+        at several times. It must be the same for all interactions with the CAS
+        server.
 
-        To conform this, the service url is always the callback url.
+        It is used as redirection from the CAS server after a succssful
+        authentication. So, the callback url is used as service url.
 
-        A redirect url is found from the current request and appended as
-        parameter to the service url and is latter used by the callback view to
-        redirect user.
+        If present, the GET param ``next`` is added to the service url.
         """
         redirect_to = get_next_redirect_url(request)
 
         callback_kwargs = {'next': redirect_to} if redirect_to else {}
-        callback_url = self.get_callback_url(request, **callback_kwargs)
+        callback_url = (
+            self.provider.get_callback_url(request, **callback_kwargs))
 
         service_url = request.build_absolute_uri(callback_url)
 
         return service_url
 
-    def get_callback_url(self, request, **kwargs):
-        """
-        Returns the callback url of the provider.
-
-        Keyword arguments are set as query string.
-        """
-        url = reverse(self.provider_id + '_callback')
-        if kwargs:
-            url += '?' + urlencode(kwargs)
-        return url
-
 
 class CASView(object):
-
+    """
+    Base class for CAS views.
+    """
     @classmethod
-    def adapter_view(cls, adapter, **kwargs):
-        """
-        Similar to the Django as_view() method.
+    def adapter_view(cls, adapter):
+        """Transform the view class into a view function.
 
-        It also setups a few things:
-        - given adapter argument will be used in views internals.
-        - if the view execution raises a CASAuthenticationError, the view
-          renders an authentication error page.
+        Similar to the Django ``as_view()`` method.
 
-        To use this:
+        Notes:
+            An (human) error page is rendered if any ``CASAuthenticationError``
+            is catched.
 
-        - subclass CAS adapter as wanted:
+        Args:
+            adapter (:class:`CASAdapter`): Provide specifics of a CAS server.
 
-            class MyAdapter(CASAdapter):
-                url = 'https://my.cas.url'
+        Returns:
+            A view function. The given adapter and related provider are
+            accessible as attributes from the view class.
 
-        - define views:
-
-            login = views.CASLoginView.adapter_view(MyAdapter)
-            callback = views.CASCallbackView.adapter_view(MyAdapter)
-            logout = views.CASLogoutView.adapter_view(MyAdapter)
 
         """
         def view(request, *args, **kwargs):
@@ -134,7 +134,7 @@ class CASView(object):
 
             # Setup and store adapter as view attribute.
             self.adapter = adapter(request)
-            self.provider = self.adapter.get_provider()
+            self.provider = self.adapter.provider
 
             try:
                 return self.dispatch(request, *args, **kwargs)
@@ -207,17 +207,20 @@ class CASCallbackView(CASView):
         # - error: None, {}, None
         response = client.verify_ticket(ticket)
 
-        if not response[0]:
+        uid, extra, _ = response
+
+        if not uid:
             raise CASAuthenticationError(
                 "CAS server doesn't validate the ticket."
             )
 
-        # The CAS provider in use is stored to propose to the user to
-        # disconnect from the latter when he logouts.
+        # Keep tracks of the last used CAS provider.
         request.session[CAS_PROVIDER_SESSION_KEY] = self.provider.id
 
-        # Finish the login flow
-        login = self.adapter.complete_login(request, response)
+        data = (uid, extra)
+
+        # Finish the login flow.
+        login = self.adapter.complete_login(request, data)
         login.state = SocialLogin.unstash_state(request)
         return complete_social_login(request, login)
 
@@ -242,7 +245,7 @@ class CASLogoutView(CASView):
 
     def get_redirect_url(self):
         """
-        Returns the url to redirect after logout from current request.
+        Returns the url to redirect after logout.
         """
         request = self.request
         return (

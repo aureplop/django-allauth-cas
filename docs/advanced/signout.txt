@@ -1,0 +1,87 @@
+################
+Sign out helpers
+################
+
+To use features described on this page, you must also add a logout view for
+your provider:
+
+.. code-block:: python
+
+  from allauth_cas.views import CASLogoutView
+
+  logout = CASLogoutView.adapter_view(MyCASAdapter)
+
+
+**************
+Suggest logout
+**************
+
+Sending message
+===============
+
+Using the method below, you can emit a message to suggest users to logout of
+the CAS server.
+
+.. automethod:: allauth_cas.providers.CASProvider.add_message_suggest_caslogout
+
+Sending message at user logout
+==============================
+
+When the user signs out your application, this message can be sent
+automatically using the following settings.
+
+The message contains a logout link for **the last used** CAS server during the
+session.
+
+In your settings:
+
+.. code-block:: python
+
+  SOCIALACCOUNT_PROVIDERS = {
+      # …
+      '<provider id>': {
+          # …
+
+          'MESSAGE_SUGGEST_CASLOGOUT_ON_LOGOUT': True,
+
+          # Optional. By default, messages.INFO
+          'MESSAGE_SUGGEST_CASLOGOUT_ON_LOGOUT_LEVEL': messages.WARNING,
+      },
+  }
+
+If you need more control over the sending of the message, you can use the
+methods below of the provider class.
+
+.. automethod:: allauth_cas.providers.CASProvider.message_suggest_caslogout_on_logout
+
+.. automethod:: allauth_cas.providers.CASProvider.message_suggest_caslogout_on_logout_level
+
+
+****************************
+Redirection after CAS logout
+****************************
+
+An url is always given for the CAS server to redirect the user to your
+application.
+
+The target of this redirection is:
+
+  * If the link is created on user logout (using above configuration):
+
+    * if present, the url pointed by the GET parameter ``next``, which should
+      be the url the user has just landed after being logged out;
+    * otherwise, the value returned by
+      ``ACCOUNT_ADAPTER.get_logout_redirect_url()``.
+
+  * If the link is created using
+    :meth:`~allauth_cas.providers.CASProvider.add_message_suggest_caslogout`:
+
+    * if present, the value of the parameter ``next_page``;
+    * otherwise, the url of the current page.
+
+  * Otherwise, ``ACCOUNT_ADAPTER.get_logout_redirect_url()``.
+
+.. note::
+
+  If no redirection happens, you should check the version declared by the
+  ``CASAdapter`` class corresponds to the CAS server one.

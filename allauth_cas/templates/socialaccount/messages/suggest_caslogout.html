@@ -1,0 +1,5 @@
+{% load i18n %}
+
+{% blocktrans with provider_name=provider.name %}
+To logout of {{ provider_name }}, please close your browser, or visit this <a href="{{ logout_url }}">link</a>.
+{% endblocktrans %}

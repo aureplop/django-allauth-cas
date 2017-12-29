@@ -20,13 +20,14 @@ setup(
     long_description=README,
     url='https://github.com/aureplop/django-allauth-cas',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Framework :: Django :: 1.8',
         'Framework :: Django :: 1.9',
         'Framework :: Django :: 1.10',
         'Framework :: Django :: 1.11',
+        'Framework :: Django :: 2.0',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
@@ -48,6 +49,7 @@ setup(
         'six',
     ],
     extras_require={
+        'docs': ['sphinx'],
         'tests': ['tox'],
     },
 )

@@ -1,0 +1,153 @@
+###########
+Basic setup
+###########
+
+Following the instructions on this page, your will create a provider for
+allauth, which allows users to connect through a CAS server.
+
+
+****************
+1. Create an app
+****************
+
+``allauth`` determines available providers by scanning ``INSTALLED_APPS``.
+Let's begin by creating an app for the CAS provider:
+
+.. code-block:: bash
+
+  $ python manage.py startapp mycas
+
+And add it to the ``INSTALLED_APPS``:
+
+.. code-block:: python
+
+  INSTALLED_APPS = [
+      # …
+      'allauth',
+      'allauth.account',
+      'allauth.socialaccount',
+
+      'allauth_cas',
+
+      'mycas',
+  ]
+
+
+**********************
+2. Create the provider
+**********************
+
+In ``mycas/provider.py``, create subclasses of ``ProviderAccount`` and
+``CASProvider``.
+
+The ``CASProvider`` subclass defines how to process data returned by the CAS
+server.
+
+.. code-block:: python
+
+  from allauth.socialaccount.providers.base import ProviderAccount
+  from allauth_cas.providers import CASProvider
+
+
+  class MyCASAccount(ProviderAccount):
+      pass
+
+
+  class MyCASProvider(CASProvider):
+      id = 'mycas'  # Choose an identifier for your provider
+      name = 'My CAS'  # Verbose name of your provider
+      account_class = MyCASAccount
+
+
+  provider_classes = [ClipperProvider]
+
+.. seealso::
+
+  :doc:`advanced/extract_data`
+
+
+*******************
+3. Create the views
+*******************
+
+Subclass ``CASAdapter`` to give your configuration as a CAS client.
+
+.. code-block:: python
+
+  from allauth_cas.views import CASAdapter
+
+  from .providers import MyCASProvider
+
+
+  class MyCASAdapter(CASAdapter):
+      provider_id = MyCASProvider.id
+      url = 'https://mycas.mydomain.net'  # The CAS server url
+      version = 3  # Select the CAS protocol version used by the CAS server: 1, 2, 3…
+
+Then, you can simply create the login and callback views.
+
+.. code-block:: python
+
+  from allauth_cas.views import CASCallbackView, CASLoginView
+
+  login = CASLoginView.adapter_view(MyCASAdapter)
+  callback = CASLogoutView.adapter_view(MyCASAdapter)
+
+.. seealso::
+
+  :doc:`advanced/cas_client`
+
+
+******************
+4. Create the urls
+******************
+
+Finally, add the urls in ``mycas/urls.py``.
+
+.. code-block:: python
+
+  from allauth_cas.urls import default_urlpatterns
+
+  from .provider import MyCASProvider
+
+  urlpatterns = default_urlpatterns(MyCasProvider)
+
+There is no need to do more, as ``allauth`` is responsible for including these
+urls.
+
+
+*******************************************
+5. Allow your application at the CAS server
+*******************************************
+
+.. note::
+
+  This step is only required if the CAS server restricts access to known
+  applications.
+
+CAS servers may restrict their usage to a list of known clients. To do so,
+the service url must be known by the CAS server. For our case, the service
+url is the callback url of a CAS provider.
+
+The service url is formatted as:
+
+.. code-block:: none
+
+  <url of your application>/<path to allauth urls>/<provider id>/login/callback/
+
+Assuming a site is served at ``https://mydomain.net``, that the allauth urls
+are included under ``accounts/``, and the provider id is ``mycas``, the service url
+is:
+
+.. code-block:: none
+
+  https://mydomain.net/accounts/mycas/login/callback
+
+While in local development, it can be:
+
+.. code-block:: none
+
+  http://127.0.0.1:8000/accounts/mycas/login/callback
+
+This url should be added to the authorized services within the CAS server
+configuration (by yourself or someone in charge of the server).

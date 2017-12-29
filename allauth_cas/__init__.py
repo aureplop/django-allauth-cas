@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.0.1.dev5'
+__version__ = '1.0.0b1'
 
 default_app_config = 'allauth_cas.apps.CASAccountConfig'
 

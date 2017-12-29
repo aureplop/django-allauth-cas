@@ -1,0 +1,21 @@
+#################################
+Use data returned by a CAS server
+#################################
+
+.. seealso::
+
+  `Creating and Populating User instances`_
+
+The following methods of ``CASProvider`` are used to extract data from the CAS
+responses.
+
+.. automethod:: allauth_cas.providers.CASProvider.extract_uid
+
+.. automethod:: allauth_cas.providers.CASProvider.extract_common_fields
+
+.. automethod:: allauth_cas.providers.CASProvider.extract_email_addresses
+
+.. automethod:: allauth_cas.providers.CASProvider.extract_extra_data
+
+
+.. _`Creating and Populating User instances`: http://django-allauth.readthedocs.io/en/latest/advanced.html#creating-and-populating-user-instances

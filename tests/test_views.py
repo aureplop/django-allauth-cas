@@ -48,20 +48,6 @@ class CASAdapterTests(CASTestCase):
         service_url = adapter.get_service_url(request)
         self.assertEqual(expected, service_url)
 
-    def test_get_callback_url(self):
-        expected = '/accounts/theid/login/callback/'
-        callback_url = self.adapter.get_callback_url(self.request)
-        self.assertEqual(expected, callback_url)
-
-    def test_get_callback_url_with_kwargs(self):
-        expected = (
-            '/accounts/theid/login/callback/?next=%2Fpath%2F'
-        )
-        callback_url = self.adapter.get_callback_url(self.request, **{
-            'next': '/path/',
-        })
-        self.assertEqual(expected, callback_url)
-
     def test_renew(self):
         """
         From an anonymous request, renew is False to let using the single
