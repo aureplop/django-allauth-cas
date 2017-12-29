@@ -32,7 +32,7 @@ class CASTestCase(TestCase):
         username and attributes control the CAS server response when ticket is
         checked.
         """
-        client.get('/accounts/theid/login/')
+        client.get(reverse('{id}_login'.format(id=provider_id)))
         self.patch_cas_response(
             valid_ticket='__all__',
             username=username, attributes=attributes,
