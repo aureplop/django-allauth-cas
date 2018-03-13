@@ -59,7 +59,7 @@ server.
       account_class = MyCASAccount
 
 
-  provider_classes = [ClipperProvider]
+  provider_classes = [MyCASProvider]
 
 .. seealso::
 
