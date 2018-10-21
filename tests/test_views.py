@@ -184,7 +184,7 @@ class CASCallbackViewTests(CASViewTestCase):
         self.assertEqual('/accounts/theid/login/callback/', url)
 
     def test_ticket_valid(self):
-        """p(
+        """
         If ticket is valid, the user is logged in.
         """
         self.patch_cas_response(username='username', valid_ticket='123456')
@@ -210,6 +210,18 @@ class CASCallbackViewTests(CASViewTestCase):
         self.patch_cas_response(username='username', valid_ticket='123456')
         r = self.client.get('/accounts/theid/login/callback/')
         self.assertLoginFailure(r)
+
+    def test_attributes_is_none(self):
+        """
+        Without extra attributes, CASClientV2 of python-cas returns None.
+        """
+        self.patch_cas_response(
+            username='username', valid_ticket='123456', attributes=None
+        )
+        r = self.client.get('/accounts/theid/login/callback/', {
+            'ticket': '123456',
+        })
+        self.assertLoginSuccess(r)
 
 
 class CASLogoutViewTests(CASViewTestCase):
