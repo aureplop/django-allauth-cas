@@ -217,7 +217,7 @@ class CASCallbackView(CASView):
         # Keep tracks of the last used CAS provider.
         request.session[CAS_PROVIDER_SESSION_KEY] = self.provider.id
 
-        data = (uid, extra)
+        data = (uid, extra or {})
 
         # Finish the login flow.
         login = self.adapter.complete_login(request, data)
