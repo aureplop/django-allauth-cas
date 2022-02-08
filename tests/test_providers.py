@@ -23,8 +23,8 @@ class CASProviderTests(TestCase):
 
     def _get_request(self):
         request = RequestFactory().get('/test/')
-        SessionMiddleware().process_request(request)
-        MessageMiddleware().process_request(request)
+        SessionMiddleware(lambda: None).process_request(request)
+        MessageMiddleware(lambda: None).process_request(request)
         return request
 
     def test_register(self):
