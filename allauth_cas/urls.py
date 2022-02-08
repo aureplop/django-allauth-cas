@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-from django.conf.urls import include, url
+import django
+
+if django.VERSION >= (2, 0):
+    from django.urls import include, re_path as url
+else:
+    from django.conf.urls import include, url
+
 from django.utils.module_loading import import_string
 
 
